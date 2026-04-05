@@ -34,7 +34,7 @@ class TrayApp:
         return pystray.Menu(
             pystray.MenuItem(
                 lambda item: f"Status: {self._status_text()}",
-                action=None,
+                lambda icon, item: None,
                 enabled=False,
             ),
             pystray.MenuItem("Toggle", self._toggle),

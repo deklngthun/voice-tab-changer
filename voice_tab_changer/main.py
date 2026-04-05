@@ -2,6 +2,10 @@ import difflib
 import os
 import sys
 import threading
+import warnings
+
+# Suppress urllib3 LibreSSL noise (macOS system SSL, not a real issue)
+warnings.filterwarnings("ignore", category=Warning, module="urllib3")
 
 # Ensure sibling modules are importable when run directly
 sys.path.insert(0, os.path.dirname(__file__))
@@ -88,6 +92,13 @@ def main() -> None:
 
     listener = HotkeyListener(cfg, on_hotkey_press, on_hotkey_release)
     listener.start()
+
+    if sys.platform == "darwin":
+        print(
+            "\n[macOS] If the hotkey does not respond, grant Accessibility permission:\n"
+            "  System Settings > Privacy & Security > Accessibility\n"
+            "  Add your Terminal app (Terminal.app / iTerm2 / etc.) and restart.\n"
+        )
 
     # tray.run() blocks on the main thread until Quit is selected
     tray.run()
