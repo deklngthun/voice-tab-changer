@@ -43,6 +43,20 @@ class Recognizer:
         result = json.loads(rec.FinalResult())
         return result.get("text", "").strip()
 
+    def check_microphone(self) -> bool:
+        """Return True if mic is capturing non-silent audio, False if blocked/silent."""
+        try:
+            with sounddevice.RawInputStream(
+                samplerate=self.SAMPLE_RATE,
+                blocksize=self.BLOCK_SIZE,
+                dtype="int16",
+                channels=1,
+            ) as stream:
+                data, _ = stream.read(self.BLOCK_SIZE)
+                return any(b != 0 for b in bytes(data))
+        except sounddevice.PortAudioError:
+            return False
+
     def listen_continuous(self, on_result) -> None:
         """Run forever, calling on_result(text) for each recognized phrase."""
         self._stop_event.clear()

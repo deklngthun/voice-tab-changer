@@ -37,6 +37,16 @@ def main() -> None:
         print(f"ERROR: Failed to load vosk model: {e}", file=sys.stderr)
         sys.exit(1)
 
+    if not recognizer.check_microphone():
+        print(
+            "\n[ERROR] Microphone is blocked or silent.\n"
+            "  Grant Microphone permission and restart:\n"
+            "  System Settings > Privacy & Security > Microphone\n"
+            "  Add your Terminal app, then restart.\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     wm = WindowManager()
 
     # Shared mutable state accessed from multiple threads
