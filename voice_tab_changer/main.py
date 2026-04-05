@@ -91,6 +91,7 @@ def main() -> None:
         """Match recognized text against window titles and focus the best match."""
         if not text:
             return
+        tray.notify(f'Heard: "{text}"')
         # Check aliases first
         text = cfg["aliases"].get(text.lower(), text)
         # Fuzzy match against visible window titles

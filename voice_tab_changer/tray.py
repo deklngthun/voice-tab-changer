@@ -54,6 +54,10 @@ class TrayApp:
     def _quit(self, icon: pystray.Icon, item) -> None:
         icon.stop()
 
+    def notify(self, message: str, title: str = "Voice Tab Changer") -> None:
+        if self._icon:
+            self._icon.notify(message, title)
+
     def update_status(self, listening: bool) -> None:
         self._listening = listening
         if self._icon:
