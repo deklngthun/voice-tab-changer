@@ -16,7 +16,8 @@ DEFAULTS = {
     },
     "fuzzy_cutoff": 0.4,
     "error_beep": True,
-    "always_listening": False
+    "always_listening": False,
+    "maximize_on_switch": True
 }
 
 

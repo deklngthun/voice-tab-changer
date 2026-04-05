@@ -102,7 +102,7 @@ def main() -> None:
         )
         if matches:
             target = next(w for w in windows if w["title"] == matches[0])
-            wm.focus_window(target)
+            wm.focus_window(target, maximize=cfg.get("maximize_on_switch", True))
         else:
             if cfg.get("error_beep", True):
                 print("\a", end="", flush=True)

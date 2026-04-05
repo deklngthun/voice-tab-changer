@@ -34,12 +34,12 @@ class WindowManager:
             return self._get_windows_windows()
         return []
 
-    def focus_window(self, window: dict) -> None:
+    def focus_window(self, window: dict, maximize: bool = False) -> None:
         try:
             if sys.platform == "darwin":
-                self._focus_macos(window)
+                self._focus_macos(window, maximize)
             elif sys.platform == "win32":
-                self._focus_windows(window)
+                self._focus_windows(window, maximize)
         except Exception as e:
             _get_error_logger().error("Failed to focus window '%s': %s", window.get("title"), e)
 
@@ -65,15 +65,22 @@ class WindowManager:
                 })
         return windows
 
-    def _focus_macos(self, window: dict) -> None:
+    def _focus_macos(self, window: dict, maximize: bool = False) -> None:
         pid = window.get("pid")
         owner = window.get("owner", "")
-        # Primary: System Events with unix id — works from background threads,
-        # no Accessibility needed for activation itself
+
+        fullscreen_block = ""
+        if maximize:
+            fullscreen_block = f"""
+                tell process "{owner}"
+                    set value of attribute "AXFullScreen" of window 1 to true
+                end tell"""
+
         if pid:
             script = f'''
                 tell application "System Events"
                     set frontmost of first process whose unix id is {pid} to true
+                    {fullscreen_block}
                 end tell
             '''
             result = subprocess.run(
@@ -82,7 +89,9 @@ class WindowManager:
             )
             if result.returncode == 0:
                 return
-            _get_error_logger().error("System Events focus failed for pid %s: %s", pid, result.stderr.strip())
+            _get_error_logger().error(
+                "System Events focus failed for pid %s: %s", pid, result.stderr.strip()
+            )
         # Fallback: activate by app name
         if owner:
             subprocess.run(
@@ -104,8 +113,9 @@ class WindowManager:
         win32gui.EnumWindows(callback, None)
         return windows
 
-    def _focus_windows(self, window: dict) -> None:
+    def _focus_windows(self, window: dict, maximize: bool = False) -> None:
         hwnd = window.get("hwnd")
         if hwnd:
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            cmd = win32con.SW_MAXIMIZE if maximize else win32con.SW_RESTORE
+            win32gui.ShowWindow(hwnd, cmd)
             win32gui.SetForegroundWindow(hwnd)
