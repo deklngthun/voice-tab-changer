@@ -6,6 +6,11 @@ import threading
 # Ensure sibling modules are importable when run directly
 sys.path.insert(0, os.path.dirname(__file__))
 
+# PIL.Image.ANTIALIAS was removed in Pillow 10.0 — patch for pystray compatibility
+import PIL.Image
+if not hasattr(PIL.Image, "ANTIALIAS"):
+    PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
+
 import config
 import downloader
 from listener import HotkeyListener
