@@ -15,7 +15,8 @@ DEFAULTS = {
         "music": "Spotify"
     },
     "fuzzy_cutoff": 0.4,
-    "error_beep": True
+    "error_beep": True,
+    "always_listening": False
 }
 
 

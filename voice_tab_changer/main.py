@@ -50,23 +50,12 @@ def main() -> None:
 
     tray = TrayApp(cfg, on_toggle=toggle_listening)
 
-    def capture_and_switch() -> None:
-        try:
-            text = recognizer.capture_and_recognize()
-        except MicrophoneError as e:
-            print(f"Microphone error: {e}", file=sys.stderr)
-            tray.update_status(False)
-            listening[0] = False
-            return
-
+    def process_text(text: str) -> None:
+        """Match recognized text against window titles and focus the best match."""
         if not text:
             return
-
         # Check aliases first
-        alias_target = cfg["aliases"].get(text.lower())
-        if alias_target:
-            text = alias_target
-
+        text = cfg["aliases"].get(text.lower(), text)
         # Fuzzy match against visible window titles
         windows = wm.get_windows()
         titles = [w["title"] for w in windows]
@@ -80,30 +69,67 @@ def main() -> None:
             if cfg.get("error_beep", True):
                 print("\a", end="", flush=True)
 
-    def on_hotkey_press() -> None:
-        if not listening[0]:
+    def capture_and_switch() -> None:
+        try:
+            text = recognizer.capture_and_recognize()
+        except MicrophoneError as e:
+            print(f"Microphone error: {e}", file=sys.stderr)
+            tray.update_status(False)
+            listening[0] = False
             return
-        t = threading.Thread(target=capture_and_switch, daemon=True)
-        capture_thread[0] = t
-        t.start()
+        process_text(text)
 
-    def on_hotkey_release() -> None:
-        recognizer.stop()
+    always_listening = cfg.get("always_listening", False)
 
-    listener = HotkeyListener(cfg, on_hotkey_press, on_hotkey_release)
-    listener.start()
+    if always_listening:
+        def _start_continuous() -> None:
+            if not listening[0]:
+                return
+            try:
+                recognizer.listen_continuous(process_text)
+            except MicrophoneError as e:
+                print(f"Microphone error: {e}", file=sys.stderr)
+                tray.update_status(False)
+                listening[0] = False
 
-    if sys.platform == "darwin":
-        print(
-            "\n[macOS] If the hotkey does not respond, grant Accessibility permission:\n"
-            "  System Settings > Privacy & Security > Accessibility\n"
-            "  Add your Terminal app (Terminal.app / iTerm2 / etc.) and restart.\n"
-        )
+        def toggle_listening(enabled: bool) -> None:
+            listening[0] = enabled
+            if not enabled:
+                recognizer.stop()
+            else:
+                threading.Thread(target=_start_continuous, daemon=True).start()
+
+        tray._on_toggle = toggle_listening
+        print("Mode: always listening (no hotkey required)")
+        threading.Thread(target=_start_continuous, daemon=True).start()
+        listener = None
+    else:
+        def on_hotkey_press() -> None:
+            if not listening[0]:
+                return
+            t = threading.Thread(target=capture_and_switch, daemon=True)
+            capture_thread[0] = t
+            t.start()
+
+        def on_hotkey_release() -> None:
+            recognizer.stop()
+
+        listener = HotkeyListener(cfg, on_hotkey_press, on_hotkey_release)
+        listener.start()
+        print(f"Mode: push-to-talk ({cfg['hotkey']})")
+
+        if sys.platform == "darwin":
+            print(
+                "\n[macOS] If the hotkey does not respond, grant Accessibility permission:\n"
+                "  System Settings > Privacy & Security > Accessibility\n"
+                "  Add your Terminal app (Terminal.app / iTerm2 / etc.) and restart.\n"
+            )
 
     # tray.run() blocks on the main thread until Quit is selected
     tray.run()
 
-    listener.stop()
+    if listener:
+        listener.stop()
 
 
 if __name__ == "__main__":

@@ -43,5 +43,26 @@ class Recognizer:
         result = json.loads(rec.FinalResult())
         return result.get("text", "").strip()
 
+    def listen_continuous(self, on_result) -> None:
+        """Run forever, calling on_result(text) for each recognized phrase."""
+        self._stop_event.clear()
+        rec = vosk.KaldiRecognizer(self._model, self.SAMPLE_RATE)
+        try:
+            with sounddevice.RawInputStream(
+                samplerate=self.SAMPLE_RATE,
+                blocksize=self.BLOCK_SIZE,
+                dtype="int16",
+                channels=1,
+            ) as stream:
+                while not self._stop_event.is_set():
+                    data, _ = stream.read(self.BLOCK_SIZE)
+                    if rec.AcceptWaveform(bytes(data)):
+                        result = json.loads(rec.Result())
+                        text = result.get("text", "").strip()
+                        if text:
+                            on_result(text)
+        except sounddevice.PortAudioError as e:
+            raise MicrophoneError(str(e)) from e
+
     def stop(self) -> None:
         self._stop_event.set()
