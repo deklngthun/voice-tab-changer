@@ -45,15 +45,35 @@ jobs:
           codesign --deep --force --sign - dist/VoiceTabChanger.app
           xattr -cr dist/VoiceTabChanger.app
 
-      - name: Zip the .app
+      - name: Create install script
         run: |
-          cd dist
-          zip -r VoiceTabChanger-macOS.zip VoiceTabChanger.app
+          mkdir -p /tmp/vtc_dmg
+          cp -R dist/VoiceTabChanger.app /tmp/vtc_dmg/
+          cat > "/tmp/vtc_dmg/Install Voice Tab Changer.command" << 'SCRIPT'
+          #!/bin/bash
+          SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+          DEST="/Applications/VoiceTabChanger.app"
+          [ -d "$DEST" ] && rm -rf "$DEST"
+          cp -R "$SCRIPT_DIR/VoiceTabChanger.app" "$DEST"
+          xattr -cr "$DEST"
+          open "$DEST"
+          osascript -e 'display dialog "Voice Tab Changer is installed!\n\nLook for the V icon in your menu bar." buttons {"Got it!"} default button "Got it!" with icon note with title "Voice Tab Changer"'
+          SCRIPT
+          chmod +x "/tmp/vtc_dmg/Install Voice Tab Changer.command"
+          xattr -cr "/tmp/vtc_dmg/Install Voice Tab Changer.command"
+
+      - name: Build DMG
+        run: |
+          hdiutil create \
+            -volname "Voice Tab Changer" \
+            -srcfolder /tmp/vtc_dmg \
+            -ov -fs HFS+ -format UDZO \
+            dist/VoiceTabChanger-macOS.dmg
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/VoiceTabChanger-macOS.zip
+          files: dist/VoiceTabChanger-macOS.dmg
 
   build-windows:
     runs-on: windows-latest
