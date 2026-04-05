@@ -34,6 +34,22 @@ class WindowManager:
             return self._get_windows_windows()
         return []
 
+    def get_installed_apps(self) -> list[str]:
+        if sys.platform == "darwin":
+            return self._get_installed_apps_macos()
+        elif sys.platform == "win32":
+            return self._get_installed_apps_windows()
+        return []
+
+    def launch_app(self, name: str) -> None:
+        try:
+            if sys.platform == "darwin":
+                subprocess.Popen(["open", "-a", name])
+            elif sys.platform == "win32":
+                subprocess.Popen(["start", "", name], shell=True)
+        except Exception as e:
+            _get_error_logger().error("Failed to launch app '%s': %s", name, e)
+
     def focus_window(self, window: dict, maximize: bool = False) -> None:
         try:
             if sys.platform == "darwin":
@@ -98,6 +114,29 @@ class WindowManager:
                 ["osascript", "-e", f'tell application "{owner}" to activate'],
                 capture_output=True,
             )
+
+    def _get_installed_apps_macos(self) -> list[str]:
+        dirs = ["/Applications", os.path.expanduser("~/Applications")]
+        names = []
+        for d in dirs:
+            if not os.path.isdir(d):
+                continue
+            for entry in os.listdir(d):
+                if entry.endswith(".app"):
+                    names.append(entry[:-4])  # strip .app
+        return names
+
+    def _get_installed_apps_windows(self) -> list[str]:
+        # On Windows, return names from common program dirs as a best-effort
+        import glob
+        names = []
+        for pattern in [
+            r"C:\Program Files\**\*.exe",
+            r"C:\Program Files (x86)\**\*.exe",
+        ]:
+            for path in glob.glob(pattern, recursive=True):
+                names.append(os.path.splitext(os.path.basename(path))[0])
+        return names
 
     # --- Windows ---
 

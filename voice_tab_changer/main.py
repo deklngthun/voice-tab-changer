@@ -88,24 +88,35 @@ def main() -> None:
             )
 
     def process_text(text: str) -> None:
-        """Match recognized text against window titles and focus the best match."""
+        """Switch to a running app or launch an installed one."""
         if not text:
             return
         tray.notify(f'Heard: "{text}"')
         # Check aliases first
         text = cfg["aliases"].get(text.lower(), text)
-        # Fuzzy match against visible window titles
+        cutoff = cfg["fuzzy_cutoff"]
+
+        # 1. Try to switch to a running app
         windows = wm.get_windows()
-        titles = [w["title"] for w in windows]
         matches = difflib.get_close_matches(
-            text, titles, n=1, cutoff=cfg["fuzzy_cutoff"]
+            text, [w["title"] for w in windows], n=1, cutoff=cutoff
         )
         if matches:
             target = next(w for w in windows if w["title"] == matches[0])
             wm.focus_window(target, maximize=cfg.get("maximize_on_switch", True))
-        else:
-            if cfg.get("error_beep", True):
-                print("\a", end="", flush=True)
+            return
+
+        # 2. Fall back to launching an installed app
+        installed = wm.get_installed_apps()
+        matches = difflib.get_close_matches(text, installed, n=1, cutoff=cutoff)
+        if matches:
+            tray.notify(f'Launching "{matches[0]}"')
+            wm.launch_app(matches[0])
+            return
+
+        # 3. Nothing found
+        if cfg.get("error_beep", True):
+            print("\a", end="", flush=True)
 
     def capture_and_switch() -> None:
         try:
