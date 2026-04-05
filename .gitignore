@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+
+# PyInstaller output
+dist/
+build/
+*.spec
+
+# Vosk model (large binary — download on first run)
+~/.voicetabchanger/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
