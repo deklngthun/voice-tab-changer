@@ -19,7 +19,7 @@ def _get_error_logger() -> logging.Logger:
 
 if sys.platform == "darwin":
     import Quartz
-    from AppKit import NSRunningApplication, NSApplicationActivateIgnoringOtherApps
+    from AppKit import NSWorkspace, NSApplicationActivationPolicyRegular
 
 elif sys.platform == "win32":
     import win32gui
@@ -46,35 +46,44 @@ class WindowManager:
     # --- macOS ---
 
     def _get_windows_macos(self) -> list[dict]:
-        options = (
-            Quartz.kCGWindowListOptionOnScreenOnly
-            | Quartz.kCGWindowListExcludeDesktopElements
-        )
-        window_list = Quartz.CGWindowListCopyWindowInfo(options, Quartz.kCGNullWindowID)
+        apps = NSWorkspace.sharedWorkspace().runningApplications()
+        seen_pids = set()
         windows = []
-        for w in window_list:
-            layer = w.get("kCGWindowLayer", -1)
-            title = w.get("kCGWindowName", "") or ""
-            owner = w.get("kCGWindowOwnerName", "") or ""
-            if layer == 0 and (title or owner):
-                display_title = f"{owner} — {title}" if title else owner
+        for app in apps:
+            if app.activationPolicy() != NSApplicationActivationPolicyRegular:
+                continue
+            pid = app.processIdentifier()
+            if pid in seen_pids:
+                continue
+            seen_pids.add(pid)
+            name = app.localizedName() or ""
+            if name:
                 windows.append({
-                    "title": display_title,
-                    "owner": owner,
-                    "pid": w.get("kCGWindowOwnerPID"),
-                    "raw": w,
+                    "title": name,
+                    "owner": name,
+                    "pid": pid,
                 })
         return windows
 
     def _focus_macos(self, window: dict) -> None:
         pid = window.get("pid")
-        if pid:
-            app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
-            if app:
-                app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
-                return
-        # Fallback: AppleScript by owner name
         owner = window.get("owner", "")
+        # Primary: System Events with unix id — works from background threads,
+        # no Accessibility needed for activation itself
+        if pid:
+            script = f'''
+                tell application "System Events"
+                    set frontmost of first process whose unix id is {pid} to true
+                end tell
+            '''
+            result = subprocess.run(
+                ["osascript", "-e", script],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                return
+            _get_error_logger().error("System Events focus failed for pid %s: %s", pid, result.stderr.strip())
+        # Fallback: activate by app name
         if owner:
             subprocess.run(
                 ["osascript", "-e", f'tell application "{owner}" to activate'],

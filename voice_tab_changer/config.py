@@ -10,7 +10,7 @@ DEFAULTS = {
     "hotkey": "ctrl+shift+space",
     "model_path": "~/.voicetabchanger/models/vosk-model-small-en-us-0.15",
     "aliases": {
-        "code": "Visual Studio Code",
+        "code": "Code",
         "browser": "Google Chrome",
         "music": "Spotify"
     },
