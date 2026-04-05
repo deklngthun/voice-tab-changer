@@ -61,6 +61,7 @@ class Recognizer:
         """Run forever, calling on_result(text) for each recognized phrase."""
         self._stop_event.clear()
         rec = vosk.KaldiRecognizer(self._model, self.SAMPLE_RATE)
+        _warned = False
         try:
             with sounddevice.RawInputStream(
                 samplerate=self.SAMPLE_RATE,
@@ -74,7 +75,11 @@ class Recognizer:
                         result = json.loads(rec.Result())
                         text = result.get("text", "").strip()
                         if text:
+                            _warned = False
                             on_result(text)
+                        elif not _warned:
+                            _warned = True
+                            on_result("")  # empty result — caller can warn
         except sounddevice.PortAudioError as e:
             raise MicrophoneError(str(e)) from e
 

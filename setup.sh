@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-echo "Creating virtual environment..."
-python3 -m venv .venv
+echo "Creating virtual environment (Python 3.14)..."
+/usr/local/bin/python3.14 -m venv .venv
 
 echo "Activating and installing dependencies..."
 .venv/bin/pip install --upgrade pip -q

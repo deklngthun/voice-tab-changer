@@ -15,6 +15,21 @@ import PIL.Image
 if not hasattr(PIL.Image, "ANTIALIAS"):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
 
+def _check_macos_mic_permission() -> bool:
+    """Return False if macOS has blocked mic access, True otherwise."""
+    if sys.platform != "darwin":
+        return True
+    try:
+        import AVFoundation
+        status = AVFoundation.AVCaptureDevice.authorizationStatusForMediaType_(
+            AVFoundation.AVMediaTypeAudio
+        )
+        # 0=undetermined, 1=restricted, 2=denied, 3=authorized
+        return status != 2
+    except Exception:
+        return True  # can't check — let sounddevice try anyway
+
+
 import config
 import downloader
 from listener import HotkeyListener
@@ -24,6 +39,19 @@ from window_manager import WindowManager
 
 
 def main() -> None:
+    if not _check_macos_mic_permission():
+        print(
+            "\n[ERROR] Microphone access denied.\n"
+            "  Opening System Settings > Privacy & Security > Microphone ...\n",
+            file=sys.stderr,
+        )
+        import subprocess
+        subprocess.run([
+            "open",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+        ])
+        sys.exit(1)
+
     cfg = config.load_config()
 
     # Ensure the vosk model is present (downloads if missing)
@@ -35,16 +63,6 @@ def main() -> None:
         recognizer = Recognizer(model_path)
     except Exception as e:
         print(f"ERROR: Failed to load vosk model: {e}", file=sys.stderr)
-        sys.exit(1)
-
-    if not recognizer.check_microphone():
-        print(
-            "\n[ERROR] Microphone is blocked or silent.\n"
-            "  Grant Microphone permission and restart:\n"
-            "  System Settings > Privacy & Security > Microphone\n"
-            "  Add your Terminal app, then restart.\n",
-            file=sys.stderr,
-        )
         sys.exit(1)
 
     wm = WindowManager()
@@ -59,6 +77,15 @@ def main() -> None:
             recognizer.stop()
 
     tray = TrayApp(cfg, on_toggle=toggle_listening)
+
+    def _warn_if_mic_silent(text: str) -> None:
+        if not text and sys.platform == "darwin":
+            print(
+                "[warn] No speech detected. If you haven't granted Microphone access,\n"
+                "  macOS may be showing a permission dialog — check for it and click Allow.\n"
+                "  Or open: System Settings > Privacy & Security > Microphone",
+                flush=True,
+            )
 
     def process_text(text: str) -> None:
         """Match recognized text against window titles and focus the best match."""
@@ -87,16 +114,21 @@ def main() -> None:
             tray.update_status(False)
             listening[0] = False
             return
+        _warn_if_mic_silent(text)
         process_text(text)
 
     always_listening = cfg.get("always_listening", False)
 
     if always_listening:
+        def _on_continuous_result(text: str) -> None:
+            _warn_if_mic_silent(text)
+            process_text(text)
+
         def _start_continuous() -> None:
             if not listening[0]:
                 return
             try:
-                recognizer.listen_continuous(process_text)
+                recognizer.listen_continuous(_on_continuous_result)
             except MicrophoneError as e:
                 print(f"Microphone error: {e}", file=sys.stderr)
                 tray.update_status(False)
