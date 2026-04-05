@@ -188,6 +188,22 @@
       border-radius: 9px; font-size: .82rem; color: #fbbf24;
     }
     .dl-warn strong { display: block; margin-bottom: .2rem; }
+    .install-cmd {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem 1.2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; margin: 1.4rem 0 .5rem;
+    }
+    .install-cmd code {
+      font-family: "SF Mono","Fira Code",monospace; font-size: .82rem;
+      color: var(--green); word-break: break-all;
+    }
+    .copy-btn {
+      flex-shrink: 0; background: var(--border); border: none; color: var(--text);
+      padding: .35rem .8rem; border-radius: 6px; font-size: .78rem;
+      cursor: pointer; transition: background .2s;
+    }
+    .copy-btn:hover { background: var(--accent); }
 
     /* ── SETUP GUIDE ── */
     .tabs { display: flex; gap: .5rem; margin-bottom: 2rem; }
@@ -369,15 +385,14 @@
           macOS
         </h3>
         <p class="req">Requires macOS 11 (Big Sur) or later · Apple Silicon &amp; Intel</p>
-        <a href="https://github.com/deklngthun/voice-tab-changer/releases/latest/download/VoiceTabChanger-macOS.zip"
-           class="btn btn-primary" id="mac-dl-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download for Mac (.zip)
-        </a>
-        <div class="dl-warn">
-          <strong>⚠️ First launch — right-click &amp; Open</strong>
-          Because the app isn't signed by Apple, macOS will warn you. Right-click the app → Open → Open Anyway. You only need to do this once.
+        <p style="font-size:.88rem;color:var(--muted);margin-bottom:.3rem;">
+          Paste this into <strong>Terminal</strong> — installs with no security warnings:
+        </p>
+        <div class="install-cmd">
+          <code id="mac-cmd">curl -fsSL https://deklngthun.github.io/voice-tab-changer/install.sh | bash</code>
+          <button class="copy-btn" onclick="copyCmd()">Copy</button>
         </div>
+        <p style="font-size:.78rem;color:var(--muted);">Or manually: <a href="https://github.com/deklngthun/voice-tab-changer/releases/latest/download/VoiceTabChanger-macOS.zip" style="color:var(--accent2);">download .zip</a> → right-click app → Open → Open Anyway</p>
       </div>
 
       <!-- Windows -->
@@ -394,7 +409,7 @@
         </a>
         <div class="dl-warn">
           <strong>⚠️ Windows SmartScreen warning</strong>
-          Click <em>"More info"</em> → <em>"Run anyway"</em>. This appears because the app isn't signed. It is safe to run.
+          Click <em>"More info"</em> → <em>"Run anyway"</em>. This warning appears for all apps without a paid certificate ($300+/year). The app is safe — <a href="https://github.com/deklngthun/voice-tab-changer" style="color:#fbbf24;">source code is public</a>.
         </div>
       </div>
 
@@ -419,23 +434,12 @@
         <li>
           <div class="step-circle"></div>
           <div class="step-body">
-            <strong>Download &amp; unzip</strong>
-            <p>Click <em>Download for Mac</em> above. Open your Downloads folder and double-click <code>VoiceTabChanger-macOS.zip</code> to extract it.</p>
-          </div>
-        </li>
-        <li>
-          <div class="step-circle"></div>
-          <div class="step-body">
-            <strong>Move to Applications</strong>
-            <p>Drag <code>VoiceTabChanger.app</code> into your <code>/Applications</code> folder. This is optional but recommended.</p>
-          </div>
-        </li>
-        <li>
-          <div class="step-circle"></div>
-          <div class="step-body">
-            <strong>Open the app (bypass Gatekeeper)</strong>
-            <p><strong>Right-click</strong> on <code>VoiceTabChanger.app</code> → click <strong>Open</strong> → click <strong>Open</strong> again in the dialog. You only need to do this once.</p>
-            <div class="callout">💡 Why? Apple requires a paid developer account to fully sign apps. This is a one-time step and the app is safe.</div>
+            <strong>Open Terminal and paste one command</strong>
+            <p>Press <code>Cmd + Space</code>, type <code>Terminal</code>, hit Enter. Then paste:</p>
+            <div class="install-cmd" style="margin-top:.75rem;">
+              <code>curl -fsSL https://deklngthun.github.io/voice-tab-changer/install.sh | bash</code>
+            </div>
+            <div class="callout">💡 This downloads, installs, and removes the security warning automatically. No "malware" pop-up.</div>
           </div>
         </li>
         <li>
@@ -570,6 +574,16 @@
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + os).classList.add('active');
     event.target.classList.add('active');
+  }
+
+  // Copy install command
+  function copyCmd() {
+    const cmd = document.getElementById('mac-cmd').textContent;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
   }
 
   // FAQ accordion

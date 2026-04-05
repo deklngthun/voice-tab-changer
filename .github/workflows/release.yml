@@ -40,6 +40,11 @@ jobs:
             --add-data "$MODEL:models/vosk-model-small-en-us-0.15" \
             voice_tab_changer/main.py
 
+      - name: Ad-hoc sign and remove quarantine
+        run: |
+          codesign --deep --force --sign - dist/VoiceTabChanger.app
+          xattr -cr dist/VoiceTabChanger.app
+
       - name: Zip the .app
         run: |
           cd dist
