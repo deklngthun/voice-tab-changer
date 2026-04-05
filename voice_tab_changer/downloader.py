@@ -1,4 +1,5 @@
 import os
+import sys
 import urllib.request
 import zipfile
 
@@ -18,6 +19,9 @@ def _progress_hook(block_num: int, block_size: int, total_size: int) -> None:
 
 
 def ensure_model(model_path: str) -> None:
+    # Skip download when running as a PyInstaller bundle — model is already inside
+    if getattr(sys, "frozen", False):
+        return
     model_path = os.path.expanduser(model_path)
     if os.path.isdir(model_path):
         return

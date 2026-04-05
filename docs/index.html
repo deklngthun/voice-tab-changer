@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Tab Changer — You say it. It switches.</title>
+  <meta name="description" content="Switch and launch any app on your computer using just your voice. Fully offline. No cloud. No subscription." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f1a;
+      --surface:  #13162a;
+      --card:     #1a1e35;
+      --border:   #252a45;
+      --accent:   #6c63ff;
+      --accent2:  #a78bfa;
+      --green:    #34d399;
+      --text:     #e2e8f0;
+      --muted:    #8892b0;
+      --radius:   14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 62px;
+      background: rgba(13,15,26,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1.05rem; }
+    .nav-logo svg { width: 28px; height: 28px; }
+    nav a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .2s; }
+    nav a:hover { color: var(--text); }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-cta {
+      background: var(--accent); color: #fff !important;
+      padding: .45rem 1.1rem; border-radius: 8px; font-weight: 600;
+    }
+    .nav-cta:hover { background: #5a52e0 !important; }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 6rem 1.5rem 5rem;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(108,99,255,.18) 0%, transparent 70%);
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: rgba(108,99,255,.15); border: 1px solid rgba(108,99,255,.35);
+      color: var(--accent2); font-size: .8rem; font-weight: 600; letter-spacing: .04em;
+      padding: .35rem .9rem; border-radius: 99px; margin-bottom: 1.8rem;
+    }
+    .badge::before { content: "●"; font-size: .55rem; color: var(--green); }
+    h1 {
+      font-size: clamp(2.6rem, 6vw, 4.2rem);
+      font-weight: 800; line-height: 1.1;
+      letter-spacing: -.03em;
+      margin-bottom: 1rem;
+    }
+    h1 span { color: var(--accent); }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted); max-width: 520px; margin: 0 auto 2.5rem;
+    }
+    .dl-buttons {
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      justify-content: center; margin-bottom: 1rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: .65rem;
+      padding: .85rem 1.8rem; border-radius: 10px;
+      font-size: 1rem; font-weight: 600; text-decoration: none;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(108,99,255,.35); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary {
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); box-shadow: 0 8px 28px rgba(108,99,255,.2); }
+    .btn svg { width: 20px; height: 20px; }
+    .hero-note { font-size: .82rem; color: var(--muted); }
+
+    /* ── DEMO CARD ── */
+    .demo-wrap {
+      max-width: 640px; margin: 3.5rem auto 0;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .demo-bar {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .7rem 1rem;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+    .demo-body { padding: 1.6rem; font-family: "SF Mono", "Fira Code", monospace; font-size: .87rem; }
+    .demo-line { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: .85rem; }
+    .demo-line:last-child { margin-bottom: 0; }
+    .tag {
+      flex-shrink: 0; font-size: .72rem; font-weight: 700;
+      padding: .15rem .55rem; border-radius: 5px; margin-top: .05rem;
+    }
+    .tag-hear { background: rgba(52,211,153,.15); color: var(--green); }
+    .tag-do   { background: rgba(108,99,255,.2);  color: var(--accent2); }
+    .tag-ok   { background: rgba(52,211,153,.15); color: var(--green); }
+    .demo-text { color: var(--text); }
+    .demo-text em { color: var(--muted); font-style: normal; }
+
+    /* ── SECTION ── */
+    section { padding: 5rem 1.5rem; }
+    .section-inner { max-width: 1060px; margin: 0 auto; }
+    .section-tag {
+      display: inline-block;
+      font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--accent2); margin-bottom: .9rem;
+    }
+    h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: .6rem; }
+    .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 500px; }
+
+    /* ── HOW IT WORKS ── */
+    .steps {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem; margin-top: 3rem;
+    }
+    .step {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem 1.75rem;
+    }
+    .step-num {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(108,99,255,.18); border: 1px solid rgba(108,99,255,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; font-weight: 800; color: var(--accent2);
+      margin-bottom: 1.2rem;
+    }
+    .step h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
+    .step p { color: var(--muted); font-size: .93rem; }
+
+    /* ── FEATURES ── */
+    .features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2rem; margin-top: 3rem;
+    }
+    .feat {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 1.6rem;
+      display: flex; gap: 1.1rem; align-items: flex-start;
+    }
+    .feat-icon {
+      flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(108,99,255,.15); display: flex; align-items: center;
+      justify-content: center; font-size: 1.2rem;
+    }
+    .feat h3 { font-size: .97rem; font-weight: 700; margin-bottom: .3rem; }
+    .feat p  { color: var(--muted); font-size: .87rem; }
+
+    /* ── DOWNLOAD ── */
+    #download { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .dl-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem; margin-top: 3rem;
+    }
+    .dl-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem;
+    }
+    .dl-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: .3rem; display: flex; align-items: center; gap: .6rem; }
+    .dl-card .req { font-size: .82rem; color: var(--muted); margin-bottom: 1.6rem; }
+    .dl-card .btn { width: 100%; justify-content: center; }
+    .dl-warn {
+      margin-top: 1.1rem; padding: .85rem 1rem;
+      background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.2);
+      border-radius: 9px; font-size: .82rem; color: #fbbf24;
+    }
+    .dl-warn strong { display: block; margin-bottom: .2rem; }
+
+    /* ── SETUP GUIDE ── */
+    .tabs { display: flex; gap: .5rem; margin-bottom: 2rem; }
+    .tab {
+      padding: .5rem 1.3rem; border-radius: 8px; font-weight: 600;
+      font-size: .9rem; cursor: pointer; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); transition: all .2s;
+    }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .steps-list { list-style: none; counter-reset: step-counter; }
+    .steps-list li {
+      counter-increment: step-counter;
+      display: flex; gap: 1.2rem; align-items: flex-start;
+      padding: 1.3rem 0; border-bottom: 1px solid var(--border);
+    }
+    .steps-list li:last-child { border-bottom: none; }
+    .step-circle {
+      flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(108,99,255,.18); border: 1px solid rgba(108,99,255,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 800; color: var(--accent2);
+    }
+    .step-circle::before { content: counter(step-counter); }
+    .step-body strong { display: block; font-size: .97rem; margin-bottom: .25rem; }
+    .step-body p { color: var(--muted); font-size: .88rem; }
+    .step-body code {
+      background: rgba(108,99,255,.15); color: var(--accent2);
+      padding: .1rem .4rem; border-radius: 5px; font-size: .85rem;
+    }
+    .callout {
+      background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.2);
+      border-radius: 9px; padding: .85rem 1rem; font-size: .85rem; color: #34d399;
+      margin-top: .75rem;
+    }
+
+    /* ── FAQ ── */
+    .faq-list { margin-top: 2.5rem; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q {
+      width: 100%; text-align: left; background: none; border: none;
+      color: var(--text); padding: 1.2rem 0;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem;
+    }
+    .faq-q:hover { color: var(--accent2); }
+    .faq-icon { font-size: 1.2rem; flex-shrink: 0; transition: transform .2s; }
+    .faq-a { display: none; padding-bottom: 1.2rem; color: var(--muted); font-size: .93rem; }
+    .faq-item.open .faq-a { display: block; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 3rem 1.5rem;
+      color: var(--muted); font-size: .85rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      h1 { font-size: 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="7" fill="#6c63ff"/>
+      <path d="M7 8L14 20L21 8" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Voice Tab Changer
+  </div>
+  <div class="nav-links">
+    <a href="#how-it-works">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#download">Download</a>
+    <a href="#setup">Setup</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <a href="#download" class="btn nav-cta">Download Free</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">Fully offline · No subscription · Free forever</div>
+  <h1>You say it.<br><span>It switches.</span></h1>
+  <p class="hero-sub">Switch between apps and launch anything on your computer using just your voice — no mouse, no keyboard, no cloud.</p>
+  <div class="dl-buttons">
+    <a href="#download" class="btn btn-primary" id="hero-mac-btn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      Download for Mac
+    </a>
+    <a href="#download" class="btn btn-secondary" id="hero-win-btn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3.5v8.5h9zm-17 1h6v6.43L3 18v-5zm17 0v6.18L11 20.5V13h9z"/></svg>
+      Download for Windows
+    </a>
+  </div>
+  <p class="hero-note">Free · macOS 11+ · Windows 10+</p>
+
+  <div class="demo-wrap">
+    <div class="demo-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <span style="margin-left:.5rem;color:var(--muted);font-size:.8rem;">Voice Tab Changer — Listening</span>
+    </div>
+    <div class="demo-body">
+      <div class="demo-line"><span class="tag tag-hear">heard</span><span class="demo-text">"chrome" <em>→ switching to Google Chrome</em></span></div>
+      <div class="demo-line"><span class="tag tag-do">switch</span><span class="demo-text">Google Chrome <em>→ brought to front ✓</em></span></div>
+      <div class="demo-line"><span class="tag tag-hear">heard</span><span class="demo-text">"spotify" <em>→ not running</em></span></div>
+      <div class="demo-line"><span class="tag tag-do">launch</span><span class="demo-text">Spotify <em>→ launching from /Applications ✓</em></span></div>
+      <div class="demo-line"><span class="tag tag-ok">✓</span><span class="demo-text">Spotify <em>opened in full screen</em></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="section-inner">
+    <div class="section-tag">How it works</div>
+    <h2>Three steps. Zero friction.</h2>
+    <p class="section-sub">No complicated setup. Just install, grant two permissions, and start talking.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install &amp; launch</h3>
+        <p>Download, unzip, and open the app. It lives silently in your menu bar — no windows, no clutter.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Grant two permissions</h3>
+        <p>Microphone (to hear you) and Accessibility (to switch windows). One-time setup, takes 30 seconds.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Say the app name</h3>
+        <p>Just say "Chrome", "Terminal", "Spotify" — it switches instantly. If it's not open, it launches it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="section-inner">
+    <div class="section-tag">Features</div>
+    <h2>Everything you need.</h2>
+    <p class="section-sub">Powerful under the hood. Simple on the surface.</p>
+    <div class="features">
+      <div class="feat"><div class="feat-icon">🔒</div><div><h3>100% offline</h3><p>Speech recognition runs entirely on your device using Vosk. Your voice never leaves your computer.</p></div></div>
+      <div class="feat"><div class="feat-icon">🚀</div><div><h3>Switch &amp; launch</h3><p>Already open? It switches to it. Closed? It launches it automatically from your Applications folder.</p></div></div>
+      <div class="feat"><div class="feat-icon">🎯</div><div><h3>Fuzzy matching</h3><p>Say "chrome" and it finds "Google Chrome". Handles typos, partial names, and slight mispronunciations.</p></div></div>
+      <div class="feat"><div class="feat-icon">⚡</div><div><h3>Always listening</h3><p>Enable always-on mode — no hotkey needed. Just speak and it responds.</p></div></div>
+      <div class="feat"><div class="feat-icon">🖥️</div><div><h3>Full screen on switch</h3><p>Optionally maximize every switched window to full screen automatically.</p></div></div>
+      <div class="feat"><div class="feat-icon">🏷️</div><div><h3>Custom aliases</h3><p>Say "browser" → opens Chrome. Say "music" → opens Spotify. Edit aliases in a simple JSON file.</p></div></div>
+      <div class="feat"><div class="feat-icon">🔕</div><div><h3>System tray only</h3><p>Runs silently in the background. No dock icon, no windows, no interruptions.</p></div></div>
+      <div class="feat"><div class="feat-icon">🪟</div><div><h3>Mac &amp; Windows</h3><p>Works on macOS 11+ and Windows 10+. Same features, same voice commands on both platforms.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="section-inner">
+    <div class="section-tag">Download</div>
+    <h2>Free. Always.</h2>
+    <p class="section-sub">No account, no subscription, no telemetry. Just download and run.</p>
+    <div class="dl-grid">
+
+      <!-- macOS -->
+      <div class="dl-card">
+        <h3>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          macOS
+        </h3>
+        <p class="req">Requires macOS 11 (Big Sur) or later · Apple Silicon &amp; Intel</p>
+        <a href="https://github.com/YOUR_USERNAME/voice-tab-changer/releases/latest/download/VoiceTabChanger-macOS.zip"
+           class="btn btn-primary" id="mac-dl-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for Mac (.zip)
+        </a>
+        <div class="dl-warn">
+          <strong>⚠️ First launch — right-click &amp; Open</strong>
+          Because the app isn't signed by Apple, macOS will warn you. Right-click the app → Open → Open Anyway. You only need to do this once.
+        </div>
+      </div>
+
+      <!-- Windows -->
+      <div class="dl-card">
+        <h3>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V5.25L11 3.5v8.5h9zm-17 1h6v6.43L3 18v-5zm17 0v6.18L11 20.5V13h9z"/></svg>
+          Windows
+        </h3>
+        <p class="req">Requires Windows 10 or later · 64-bit</p>
+        <a href="https://github.com/YOUR_USERNAME/voice-tab-changer/releases/latest/download/VoiceTabChanger-Windows.zip"
+           class="btn btn-primary" id="win-dl-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for Windows (.zip)
+        </a>
+        <div class="dl-warn">
+          <strong>⚠️ Windows SmartScreen warning</strong>
+          Click <em>"More info"</em> → <em>"Run anyway"</em>. This appears because the app isn't signed. It is safe to run.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SETUP GUIDE -->
+<section id="setup">
+  <div class="section-inner">
+    <div class="section-tag">Setup Guide</div>
+    <h2>Up and running in 2 minutes.</h2>
+    <p class="section-sub">Step-by-step for both platforms.</p>
+    <div class="tabs" style="margin-top:2.5rem;">
+      <button class="tab active" onclick="switchTab('mac')">macOS</button>
+      <button class="tab" onclick="switchTab('win')">Windows</button>
+    </div>
+
+    <!-- macOS Guide -->
+    <div class="tab-panel active" id="tab-mac">
+      <ol class="steps-list">
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Download &amp; unzip</strong>
+            <p>Click <em>Download for Mac</em> above. Open your Downloads folder and double-click <code>VoiceTabChanger-macOS.zip</code> to extract it.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Move to Applications</strong>
+            <p>Drag <code>VoiceTabChanger.app</code> into your <code>/Applications</code> folder. This is optional but recommended.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Open the app (bypass Gatekeeper)</strong>
+            <p><strong>Right-click</strong> on <code>VoiceTabChanger.app</code> → click <strong>Open</strong> → click <strong>Open</strong> again in the dialog. You only need to do this once.</p>
+            <div class="callout">💡 Why? Apple requires a paid developer account to fully sign apps. This is a one-time step and the app is safe.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Grant Microphone permission</strong>
+            <p>macOS will show a dialog: <em>"VoiceTabChanger wants to access the microphone"</em>. Click <strong>Allow</strong>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Grant Accessibility permission</strong>
+            <p>Go to <strong>System Settings → Privacy &amp; Security → Accessibility</strong>. Find <em>VoiceTabChanger</em> and toggle it <strong>on</strong>. This lets the app switch windows on your behalf.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>You're done! 🎉</strong>
+            <p>A <strong>V</strong> icon appears in your menu bar. The app is listening. Say any app name — "Chrome", "Spotify", "Finder" — and it will switch or launch it instantly.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Windows Guide -->
+    <div class="tab-panel" id="tab-win">
+      <ol class="steps-list">
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Download &amp; unzip</strong>
+            <p>Click <em>Download for Windows</em> above. Right-click the downloaded <code>.zip</code> → <strong>Extract All</strong>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Run the app</strong>
+            <p>Double-click <code>VoiceTabChanger.exe</code>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Bypass SmartScreen</strong>
+            <p>Windows may show a blue <em>"Windows protected your PC"</em> dialog. Click <strong>More info</strong> → <strong>Run anyway</strong>.</p>
+            <div class="callout">💡 Why? Microsoft requires an expensive code-signing certificate for this warning to disappear. The app is safe.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>Allow Microphone access</strong>
+            <p>Windows will ask for microphone permission. Click <strong>Yes</strong> / <strong>Allow</strong>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-circle"></div>
+          <div class="step-body">
+            <strong>You're done! 🎉</strong>
+            <p>A <strong>V</strong> icon appears in your system tray (bottom-right). Hold <strong>Ctrl + Shift + Space</strong>, say an app name, and release. The window switches instantly.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="background:var(--surface);border-top:1px solid var(--border);">
+  <div class="section-inner">
+    <div class="section-tag">FAQ</div>
+    <h2>Common questions.</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">What apps can I switch to? <span class="faq-icon">+</span></button>
+        <div class="faq-a">Any app that is installed on your computer. If it's currently running, it will be brought to focus. If it's closed, it will be launched automatically from your Applications folder (macOS) or Start Menu (Windows).</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Does it work if the app name is long or hard to say? <span class="faq-icon">+</span></button>
+        <div class="faq-a">Yes — the app uses fuzzy matching, so saying "chrome" finds "Google Chrome", "pycharm" finds "PyCharm", and partial names usually work. You can also add custom shortcuts (aliases) like "browser → Google Chrome" by editing the config file.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Do I need the internet? <span class="faq-icon">+</span></button>
+        <div class="faq-a">No. Speech recognition is 100% offline using the Vosk library. Your voice never leaves your computer. An internet connection is only needed the very first time to download the speech model (~50 MB).</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">How do I use always-listening mode? <span class="faq-icon">+</span></button>
+        <div class="faq-a">In the config file at <code>~/.voicetabchanger/config.json</code>, set <code>"always_listening": true</code>. The app will then respond to any spoken app name without needing you to hold a hotkey first.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Can I add custom voice shortcuts? <span class="faq-icon">+</span></button>
+        <div class="faq-a">Yes. Click <em>Edit Config</em> in the tray menu to open the config file. Under <code>"aliases"</code>, add entries like <code>"music": "Spotify"</code> or <code>"work": "Visual Studio Code"</code>. Save and the changes take effect immediately.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">The hotkey doesn't respond on macOS. <span class="faq-icon">+</span></button>
+        <div class="faq-a">This means Accessibility permission hasn't been granted. Go to <strong>System Settings → Privacy &amp; Security → Accessibility</strong>, find VoiceTabChanger, and toggle it on. Restart the app after granting permission.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">How do I stop or pause the app? <span class="faq-icon">+</span></button>
+        <div class="faq-a">Click the <strong>V</strong> icon in your menu bar / system tray. Select <strong>Toggle</strong> to pause listening, or <strong>Quit</strong> to exit completely.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p style="margin-bottom:.5rem;">
+    <strong>Voice Tab Changer</strong> — You say it. It switches.
+  </p>
+  <p>Free &amp; open source ·
+    <a href="https://github.com/YOUR_USERNAME/voice-tab-changer" target="_blank">GitHub</a>
+  </p>
+</footer>
+
+<script>
+  // OS detection — highlight the right download button
+  const isMac = /Mac/.test(navigator.platform) || /Mac/.test(navigator.userAgent);
+  if (!isMac) {
+    document.getElementById('hero-win-btn').classList.add('btn-primary');
+    document.getElementById('hero-win-btn').classList.remove('btn-secondary');
+    document.getElementById('hero-mac-btn').classList.remove('btn-primary');
+    document.getElementById('hero-mac-btn').classList.add('btn-secondary');
+  }
+
+  // Tab switcher
+  function switchTab(os) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + os).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // FAQ accordion
+  function toggleFaq(btn) {
+    btn.closest('.faq-item').classList.toggle('open');
+  }
+</script>
+</body>
+</html>

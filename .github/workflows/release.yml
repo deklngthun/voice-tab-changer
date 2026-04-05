@@ -1,0 +1,91 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Download Vosk model
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, 'voice_tab_changer')
+          import downloader, os
+          downloader.ensure_model('~/.voicetabchanger/models/vosk-model-small-en-us-0.15')
+          "
+
+      - name: Build .app with PyInstaller
+        run: |
+          MODEL="$HOME/.voicetabchanger/models/vosk-model-small-en-us-0.15"
+          pyinstaller \
+            --name VoiceTabChanger \
+            --windowed \
+            --onedir \
+            --add-data "$MODEL:models/vosk-model-small-en-us-0.15" \
+            voice_tab_changer/main.py
+
+      - name: Zip the .app
+        run: |
+          cd dist
+          zip -r VoiceTabChanger-macOS.zip VoiceTabChanger.app
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/VoiceTabChanger-macOS.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Download Vosk model
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, 'voice_tab_changer')
+          import downloader
+          downloader.ensure_model('~/.voicetabchanger/models/vosk-model-small-en-us-0.15')
+          "
+
+      - name: Build .exe with PyInstaller
+        shell: cmd
+        run: |
+          set MODEL=%USERPROFILE%\.voicetabchanger\models\vosk-model-small-en-us-0.15
+          pyinstaller ^
+            --name VoiceTabChanger ^
+            --windowed ^
+            --onefile ^
+            --add-data "%MODEL%;models\vosk-model-small-en-us-0.15" ^
+            voice_tab_changer\main.py
+
+      - name: Zip the .exe
+        run: Compress-Archive -Path dist\VoiceTabChanger.exe -DestinationPath dist\VoiceTabChanger-Windows.zip
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist\VoiceTabChanger-Windows.zip

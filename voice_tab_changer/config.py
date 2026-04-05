@@ -6,6 +6,13 @@ import sys
 CONFIG_DIR = os.path.expanduser("~/.voicetabchanger")
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
 
+# When packaged with PyInstaller, the vosk model is bundled inside the binary.
+# sys._MEIPASS points to the temp directory where assets are extracted.
+def _bundled_model_path() -> str | None:
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, "models", "vosk-model-small-en-us-0.15")
+    return None
+
 DEFAULTS = {
     "hotkey": "ctrl+shift+space",
     "model_path": "~/.voicetabchanger/models/vosk-model-small-en-us-0.15",
@@ -32,6 +39,10 @@ def load_config() -> dict:
     for key, val in DEFAULTS.items():
         if key not in cfg:
             cfg[key] = val
+    # If running as a frozen bundle, override model_path to the bundled copy
+    bundled = _bundled_model_path()
+    if bundled:
+        cfg["model_path"] = bundled
     return cfg
 
 
